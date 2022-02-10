@@ -23,6 +23,9 @@ public class OutputData extends InputData {
     double overPayment;   // переплата
     double [] mortCalcul;
 
+    String fileMortgageData;
+    String fileRepaymentData;
+
     public OutputData() {
     }
 
@@ -43,6 +46,9 @@ public class OutputData extends InputData {
         overPayment = mountlyPayment * loanTerm * constTranslation - loanAmount;
     }
 
+    /**
+     * метод выводит на консоль график погашения
+     */
     void repaymentScheduleDisplay() {   // график погашения ипотеки
         double loanAmountCalculated = loanAmount;
         int n = 1;  // инициализация первого платежа
@@ -64,9 +70,14 @@ public class OutputData extends InputData {
         }
     }
 
-    public void mortgageDataFile(String fileName) {  // данные по ипотеке сохраняем в файл
+    /**
+     * метод сохраняет данные по ипотеке в файл, имя файла присваивается прерменной
+     * экземпляра класа fileMortgageData
+     */
+    public void mortgageDataFile() {  // данные по ипотеке сохраняем в файл
         Date date = new Date();
-        File file = new File(pathFile(fileName) + fio + "_" + date.toString().replaceAll("[ :]", "_")+ ".txt");
+        File file = new File(
+                pathFile("") + fio + "_" + date.toString().replaceAll("[ :]", "_")+ ".txt");
         FileWriter fr = null;
         try {
             fr = new FileWriter(file);
@@ -85,7 +96,231 @@ public class OutputData extends InputData {
                 e.printStackTrace();
             }
         }
+        fileMortgageData = file.getName();
     }
+
+
+
+    /**
+     * метод загружает данные из файла построчно в List
+     */
+     public List<String> inputMortgageDataFile(String fileName) {
+        List<String> allLines = new ArrayList<>();
+        try {
+            allLines = Files.readAllLines(Paths.get(pathFile(fileName)), StandardCharsets.UTF_8);
+            //for (String line : allLines) {
+            //    System.out.println(line);
+            //}
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        //System.out.println(allLines);
+        return allLines;
+    }
+
+    /**
+     * Метод извлекает из файла ФИО заемщика
+     */
+    public String getFIOFromFile(String fileName) {
+        String subStr;
+        String fioFile = "";
+        List<String> listData;
+        listData = inputMortgageDataFile(fileName);
+        for(String str : listData) {
+            int index = str.indexOf(":");
+            subStr = str.substring(0, index);
+            //System.out.println(subStr);
+            switch (subStr) {
+                case ("ФИО заемщика"):
+                    fioFile = str.substring(index + 1).trim();
+                    break;
+            }
+        }
+        if (fioFile == "") {
+            System.out.println("В файле '"+fileName+"' не содержится ФИО заемщика!!!\n" +
+                    "Выберете другой файл");
+            System.exit(-1);
+        }
+        return fioFile;
+    }
+
+    /**
+     * Метод извлекает из файла данные: ФИО, срок кредитования в годах, сумма ипотеки, годовая процентная ставка
+     */
+    public void dataForCalculation(String fileName) {
+        String subStr;
+        List<String> listData;
+        listData = inputMortgageDataFile(fileName);
+        for(String str : listData) {
+            int index = str.indexOf(":");
+            subStr = str.substring(0, index);
+            //System.out.println(subStr);
+            switch (subStr) {
+                case ("ФИО заемщика"):
+                    fio = str.substring(index + 1).trim();
+                    break;
+                case ("срок кредитования в годах"):
+                    loanTerm = Float.parseFloat(str.substring(index + 1).trim());
+                    break;
+                case ("сумма ипотеки"):
+                    loanAmount = Float.parseFloat(str.substring(index + 1).trim());
+                    break;
+                case ("годовая процентная ставка"):
+                    interestRate = roundAvoid(Float.parseFloat(str.substring(index + 1).trim()), 2);
+                    break;
+            }
+        }
+        if (fio == "" || loanTerm <= 0 || loanAmount <= 0 || interestRate <= 0) {
+            System.out.println("В файле '"+fileName+"' содержаться не все данные для расчета!!!\n" +
+                    "Выберете другой файл");
+            System.exit(-1);
+        }
+    }
+
+    /**
+     * метод сохраняет график погашения в List
+     */
+
+    public List<String> repaymentScheduleList() {
+        List<String> repaymentList = new ArrayList<>();
+        int n = 1;  // инициализация первого платежа
+        repaymentList.add("\n");
+        double loanTermMonth = loanTerm * constTranslation;
+        while (loanTermMonth > 0) {
+            remainingDebt = loanAmount - principalDebt;
+            if(loanTermMonth == 1) {
+                remainingDebt = 0;
+            }
+            repaymentList.add(n + " " + roundAvoid(mountlyPayment, 2) + " " +
+                    roundAvoid(repaymentPercent, 2) +
+                    " " + roundAvoid(principalDebt, 2) + " " + roundAvoid(remainingDebt, 2));
+            n++;
+            loanTermMonth--;
+            repaymentPercent = remainingDebt * mountlyRate;
+            principalDebt = mountlyPayment - repaymentPercent;
+            loanAmount = remainingDebt;
+        }
+        return repaymentList;
+    }
+
+    /**
+     * метод добавляет график погашения в файл с данными по ипотеке
+     */
+    public void addRepaymentScheduleFile(String filePath) {
+        Path path = Paths.get(filePath);
+        List<String> list = repaymentScheduleList();
+        try {
+            Files.write(path, list,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * метод добавляет график погашения в файл с данными по ипотеке,
+     * имя файла берется из экземпляра класса
+     */
+    public void addRepaymentScheduleFile() {
+        Path path = Paths.get(fileRepaymentData);
+        List<String> list = repaymentScheduleList();
+        try {
+            Files.write(path, list,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+    /**
+     * метод копирует файл с данными по ипотеки из одной директории в другую
+     */
+    public void copyFile(String fileName) {
+        File start = new File(pathFile(fileName));
+        File finish = new File(pathFile(fileName).replace("mortgageData", "repaymentSchedule"));
+        try {
+            Files.copy(start.toPath(), finish.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * метод копирует файл с данными по ипотеки из директории mortgageDat в repaymentSchedule,
+     * имя файла берется из экзеипляра класса
+     */
+    public void copyFile() {
+        // fileMortgageData почему то null ???
+        System.out.println(fileMortgageData);
+        File start = new File(pathFile(fileMortgageData));
+        File finish = new File(pathFile(fileMortgageData).replace("mortgageData", "repaymentSchedule"));
+        try {
+            Files.copy(start.toPath(), finish.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * метод метод копирует файл с данными по ипотеки из одной директории в другую
+     * и добавляет в файл график погашения в качестве параметра принимает имя файла
+     */
+    public void copyAddRepaymentScheduleFile(String fileName) {
+        String newFilePath = pathFile(fileName).replace("mortgageData", "repaymentSchedule");
+        copyFile(fileName);
+        addRepaymentScheduleFile(newFilePath);
+    }
+
+    /**
+     * метод метод копирует файл с данными по ипотеки из одной директории в другую
+     * и добавляет в файл график погашения, имя файла берется из экземпляра класса
+     * метод присваивает переменной класса fileRepaymentData значение
+     */
+    public void copyAddRepaymentScheduleFile() {
+        System.out.println(fileMortgageData);
+        String newFilePath = pathFile(fileMortgageData).replace("mortgageData", "repaymentSchedule");
+        copyFile();
+        addRepaymentScheduleFile(newFilePath);
+        fileRepaymentData = fileMortgageData;
+    }
+
+    /**
+     * метод удаляет файл
+     */
+    public void deleteFile(String fileName) {
+        File file = new File(pathFile(fileName));
+        file.delete();
+    }
+
+    /**
+     * метод добавляет к файлу путь до директории по умолчанию
+     */
+    public String pathFile(String fileName) {
+        File file = new File("C:\\Users\\User\\IdeaProjects\\mortgageCalculator\\src\\main\\resources\\application.properties");
+        Properties properties = new Properties();
+        try {
+            properties.load(new FileReader(file));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return properties.getProperty("directory.path") + fileName;
+    }
+
+    /**
+     * метод округляет значение числа до сотых
+     */
+    public static double roundAvoid(double value, int places) { // округление до сотых
+        double scale = Math.pow(10, places);
+        return Math.round(value * scale) / scale;
+    }
+
+
+
 
     /**
      *НЕ НАДО
@@ -184,146 +419,12 @@ public class OutputData extends InputData {
         return mortCalcul;
     }
 
-    public static double roundAvoid(double value, int places) { // округление до сотых
-        double scale = Math.pow(10, places);
-        return Math.round(value * scale) / scale;
-    }
+
 
     void displayMortgageCalculator() {   // расчетные данные по ипотеке
         System.out.println(Constants.CALC_DATA.get("mountlyPaymentDict") +
                 roundAvoid(mountlyPayment, 2));   // месячный платеж
         System.out.println(Constants.CALC_DATA.get("overPaymentDict") +
                 roundAvoid(overPayment, 2));   // переплата*/
-    }
-
-    /**
-     * метод загружает данные из файла построчно в List
-     */
-     public List<String> inputMortgageDataFile(String fileName) {
-        List<String> allLines = new ArrayList<>();
-        try {
-            allLines = Files.readAllLines(Paths.get(pathFile(fileName)), StandardCharsets.UTF_8);
-            //for (String line : allLines) {
-            //    System.out.println(line);
-            //}
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        //System.out.println(allLines);
-        return allLines;
-    }
-
-    /**
-     * Метод извлекает из List данные: ФИО, срок кредитования в годах, сумма ипотеки, годовая процентная ставка
-     */
-    public void dataForCalculation(String fileName) {
-        String subStr;
-        List<String> listData;
-        listData = inputMortgageDataFile(fileName);
-        for(String str : listData) {
-            int index = str.indexOf(":");
-            subStr = str.substring(0, index);
-            //System.out.println(subStr);
-            switch (subStr) {
-                case ("ФИО заемщика"):
-                    fio = str.substring(index + 1).trim();
-                    break;
-                case ("срок кредитования в годах"):
-                    loanTerm = Float.parseFloat(str.substring(index + 1).trim());
-                    break;
-                case ("сумма ипотеки"):
-                    loanAmount = Float.parseFloat(str.substring(index + 1).trim());
-                    break;
-                case ("годовая процентная ставка"):
-                    interestRate = roundAvoid(Float.parseFloat(str.substring(index + 1).trim()), 2);
-                    break;
-            }
-        }
-    }
-
-    /**
-     * метод сохраняет график погашения в List
-     */
-
-    public List<String> repaymentScheduleList() {
-        List<String> repaymentList = new ArrayList<>();
-        int n = 1;  // инициализация первого платежа
-        repaymentList.add("\n");
-        double loanTermMonth = loanTerm * constTranslation;
-        while (loanTermMonth > 0) {
-            remainingDebt = loanAmount - principalDebt;
-            if(loanTermMonth == 1) {
-                remainingDebt = 0;
-            }
-            repaymentList.add(n + " " + roundAvoid(mountlyPayment, 2) + " " +
-                    roundAvoid(repaymentPercent, 2) +
-                    " " + roundAvoid(principalDebt, 2) + " " + roundAvoid(remainingDebt, 2));
-            n++;
-            loanTermMonth--;
-            repaymentPercent = remainingDebt * mountlyRate;
-            principalDebt = mountlyPayment - repaymentPercent;
-            loanAmount = remainingDebt;
-        }
-        return repaymentList;
-    }
-
-    /**
-     * метод добавляет график погашения в файл с данными по ипотеке
-     */
-    public void addRepaymentScheduleFile(String filePath) {
-        Path path = Paths.get(filePath);
-        List<String> list = repaymentScheduleList();
-        try {
-            Files.write(path, list,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.APPEND);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * метод копирует файл с данными по ипотеки из одной директории в другую
-     */
-    public void copyFile(String fileName) {
-        File start = new File(pathFile(fileName));
-        File finish = new File(pathFile(fileName).replace("mortgageData", "repaymentSchedule"));
-        try {
-            Files.copy(start.toPath(), finish.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * метод метод копирует файл с данными по ипотеки из одной директории в другую
-     * и добавляет в файл график погашения
-     */
-    public void copyAddRepaymentScheduleFile(String fileName) {
-        String newFilePath = pathFile(fileName).replace("mortgageData", "repaymentSchedule");
-        copyFile(fileName);
-        addRepaymentScheduleFile(newFilePath);
-    }
-
-    /**
-     * метод удаляет файл
-     */
-    public void deleteFile(String fileName) {
-        File file = new File(pathFile(fileName));
-        file.delete();
-    }
-
-    /**
-     * метод добавляет к файлу путь до директории по умолчанию
-     */
-    public String pathFile(String fileName) {
-        File file = new File("C:\\Users\\User\\IdeaProjects\\mortgageCalculator\\src\\main\\resources\\application.properties");
-        Properties properties = new Properties();
-        try {
-            properties.load(new FileReader(file));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return properties.getProperty("directory.path") + fileName;
     }
 }

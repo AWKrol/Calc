@@ -7,9 +7,35 @@ import java.util.List;
 
 public class InputDateDemo {
     public static void main(String [] args) {
+        String fileName = "Vova_Fri_Feb_11_00_25_34_MSK_2022.txt";
+
+        //Scenario.scenarioOne();
+        //Scenario.scenarioTwo();
+        Scenario.scenarioThree(fileName);
+
+
+        //ConnectionDB calc = new ConnectionDB();
+        //calc.deleteDataTablDB("client_data");
+        //calc.deleteDataTablDB("mortgage_data");
+        //calc.deleteDataTablDB("repayment_data");
+
+        //calc.addFioDBClientData();
+
+        //calc.addFioDBClientData();
+
+        /*
+        // Ввод данных новых заемщиков
+        ConnectionDB calc = new ConnectionDB();
+        calc.addCalculationData();
+        calc.calculatorData();
+        calc.mortgageDataFile();
+       */
+
+
+        /*
         String fileName = "Dad_Fri_Feb_04_21_36_28_MSK_2022.txt";
         String fileNameTwo = "Andre_Thu_Feb_03_21_56_36_MSK_2022.txt";
-
+        String fileNameThree = "Кролевецкий А.В._Thu_Feb_03_22_14_12_MSK_2022.txt";
 
         ConnectionDB outputData = new ConnectionDB();
         outputData.dataForCalculation(fileName);
@@ -18,8 +44,6 @@ public class InputDateDemo {
         System.out.println(outputData.getClientIdFio());
         outputData.addClientBD();
 
-
-
         ConnectionDB outputDataTwo = new ConnectionDB();
         outputDataTwo.dataForCalculation(fileNameTwo);
         outputDataTwo.calculatorData();
@@ -27,6 +51,13 @@ public class InputDateDemo {
         System.out.println(outputDataTwo.getClientIdFio());
         outputDataTwo.addClientBD();
 
+        ConnectionDB outputDataThree = new ConnectionDB();
+        outputDataTwo.dataForCalculation(fileNameThree);
+        outputDataTwo.calculatorData();
+        outputDataTwo.copyAddRepaymentScheduleFile(fileNameThree);
+        System.out.println(outputDataThree.getClientIdFio());
+        outputDataTwo.addClientBD();
+*/
         //outputDataTwo.deleteDataTablDB("client_data");
 /*
         String filePath = "C:\\Users\\User\\IdeaProjects\\mortgageCalculator\\src\\main\\java\\Data\\mortgageData\\Dad_Fri_Feb_04_21_36_28_MSK_2022.txt";
@@ -121,4 +152,9 @@ public class InputDateDemo {
         System.out.println(dictInputDate.get("loanTermDict"));*/
 
     }
+
+
+
+
+
 }

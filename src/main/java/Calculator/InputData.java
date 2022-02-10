@@ -1,5 +1,6 @@
 package Calculator;
 
+import java.util.InputMismatchException;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -7,7 +8,7 @@ import static Calculator.Constants.CALC_DATA;
 import static Calculator.OutputData.roundAvoid;
 
 
-public class InputData {   // входные данные
+public class InputData extends Helper {   // входные данные
     String fio;   // ФИО заемщика
     double loanTerm;   // срок кредитования в годах
     double loanAmount;   // сумма ипотеки
@@ -28,7 +29,27 @@ public class InputData {   // входные данные
         this.interestRate = interestRate;
     }
 
+    /**
+     * метод получает с консоли входные данные для расчета ипотеки
+     */
 
+    public void addCalculationData() {
+        while (true) {
+            try {
+                fio = InputData.getFio();
+                loanTerm = InputData.getLoanTerm();
+                loanAmount = InputData.getLoanAmount();
+                interestRate = InputData.getInterestRate();
+                break;
+
+            } catch (InputMismatchException e) {
+                System.out.println("Введено некорректное значение!!!" +
+                        "Введите корректные данные.");
+                String fail = InputData.getFail();
+                continue;
+            }
+        }
+    }
 
     void displayInputData() {   // вывод на консоль входных данных
         if(fio != null) {

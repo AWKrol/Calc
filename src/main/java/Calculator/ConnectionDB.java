@@ -1,5 +1,6 @@
 package Calculator;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.io.File;
@@ -346,6 +347,62 @@ public class ConnectionDB extends OutputData{
             connectionBDAndInsert(requestSql);
         } else
             System.out.println("ОШИБКА: в БД уже есть такая запись!!!");
+    }
+
+    /**
+     * метод получает все значения из таблицы client_data клиента из БД и сохраняет их в JSON
+     */
+    public JSONObject getAllTablClientData() {
+        JSONObject jsonResponse = new JSONObject();
+        String requestSql = "SELECT * FROM client_data;";
+        ResultSet resultSet = connectionBDAndSelect(requestSql);
+        JSONArray jsonArray = ConnectionDB.converterJSONArray(resultSet);
+        jsonResponse.put("users", jsonArray);
+        return jsonResponse;
+    }
+
+    /**
+     * метод конвертирует ResultSet в JSONArray
+     */
+    protected static JSONArray converterJSONArray(ResultSet rs) {
+        JSONArray json = new JSONArray();
+        ResultSetMetaData rsmd = null;
+        try {
+            rsmd = rs.getMetaData();
+
+            while(rs.next()) {
+                int numColumns = rsmd.getColumnCount();
+                JSONObject obj = new JSONObject();
+                for (int i=1; i<=numColumns; i++) {
+                    String column_name = rsmd.getColumnName(i);
+                    obj.put(column_name, rs.getObject(column_name));
+                }
+                json.add(obj);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return json;
+    }
+
+    /**
+     * метод конвертирует ResultSet в JSONObject
+     */
+    protected static JSONObject converterJSONObject(ResultSet rs) {
+        JSONObject jsonObject = new JSONObject();
+
+        try {
+            ResultSetMetaData rsmd = rs.getMetaData();
+            while (rs.next()) {
+                for(int i = 1; i <= rsmd.getColumnCount(); i++) {
+                    jsonObject.put(rsmd.getColumnName(i), rs.getObject(rsmd.getColumnName(i)));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return jsonObject;
     }
 
 }
